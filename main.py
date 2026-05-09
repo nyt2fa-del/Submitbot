@@ -13,7 +13,7 @@ from datetime import datetime
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials   # ← Fixed
 from dotenv import load_dotenv
 
 # ── Load environment variables from .env (local dev only) ──
@@ -28,61 +28,53 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ============================================================
-# CONFIGURATION — pulled from environment variables
+# CONFIGURATION
 # ============================================================
 
 BOT_TOKEN            = os.environ.get("BOT_TOKEN", "")
 ADMIN_USERNAME       = os.environ.get("ADMIN_USERNAME", "@Sefuax")
 ADMIN_ID             = int(os.environ.get("ADMIN_ID", "0"))
-SPREADSHEET_ID       = os.environ.get("SPREADSHEET_ID", "1raKo528RX1ExRDBBYCUzcjhMG6VsVS7x")
+SPREADSHEET_ID       = os.environ.get("SPREADSHEET_ID", "1fOEBy1EQrjE8qbjQpRPIWK83QsMG_z2F3divgumqvaU")
 GOOGLE_CREDENTIALS   = os.environ.get("GOOGLE_CREDENTIALS", "")
 
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN is not set. Add it to your .env or Railway environment variables.")
-
+    raise ValueError("BOT_TOKEN is not set.")
 if ADMIN_ID == 0:
-    raise ValueError("ADMIN_ID is not set. Add your Telegram numeric user ID.")
-
+    raise ValueError("ADMIN_ID is not set.")
 if not GOOGLE_CREDENTIALS:
-    raise ValueError("GOOGLE_CREDENTIALS is not set. Add the full service account JSON as an environment variable.")
+    raise ValueError("GOOGLE_CREDENTIALS is not set.")
 
 # ============================================================
-# GOOGLE SHEETS SETUP
-# Reads credentials directly from the GOOGLE_CREDENTIALS env var
-# instead of a credentials.json file.
+# GOOGLE SHEETS SETUP (FIXED)
 # ============================================================
 
 SCOPES = [
-    "[spreadsheets.google.com](https://spreadsheets.google.com/feeds)",
-    "[googleapis.com](https://www.googleapis.com/auth/drive)"
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
 ]
 
 def get_sheet():
-    """
-    Connect to Google Sheets and return the first worksheet.
-    Credentials are loaded from the GOOGLE_CREDENTIALS environment variable
-    which should contain the full service account JSON as a string.
-    """
+    """Connect to Google Sheets using GOOGLE_CREDENTIALS env variable"""
     try:
         creds_dict = json.loads(GOOGLE_CREDENTIALS)
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPES)
-        client = gspread.authorize(creds)
+        
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+        
+        client = gspread.authorize(credentials)
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
         worksheet = spreadsheet.sheet1
-        logger.info("✅ Connected to Google Sheets successfully.")
+        
+        logger.info("✅ Google Sheets Connected Successfully!")
         return worksheet
     except json.JSONDecodeError:
-        logger.error("GOOGLE_CREDENTIALS is not valid JSON. Check your environment variable.")
+        logger.error("❌ GOOGLE_CREDENTIALS is not valid JSON.")
         raise
     except Exception as e:
-        logger.error(f"Google Sheets connection failed: {e}")
+        logger.error(f"❌ Google Sheets connection failed: {e}")
         raise
 
 def save_to_sheet(username: str, password: str, twofa: str, user_id: int):
-    """
-    Append a new row to the Google Sheet.
-    Columns: A=Username | B=Password | C=2FA Key | D=Telegram User ID | E=Submission Time
-    """
+    """Append a new row to the Google Sheet"""
     try:
         sheet = get_sheet()
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -93,8 +85,7 @@ def save_to_sheet(username: str, password: str, twofa: str, user_id: int):
         raise
 
 # ============================================================
-# APPROVED USERS — stored locally in approved_users.json
-# Format: { "user_id": true, ... }
+# APPROVED USERS
 # ============================================================
 
 APPROVED_FILE = "approved_users.json"
@@ -130,7 +121,6 @@ LAST_NAMES  = ["Carter", "Brooks", "Hayes", "Morgan", "Reyes", "Flynn",
 GENDERS     = ["Male", "Female"]
 
 def generate_fake_info() -> dict:
-    """Generate a random name, stylish username with numbers in the middle, and gender."""
     first  = random.choice(FIRST_NAMES)
     last   = random.choice(LAST_NAMES)
     gender = random.choice(GENDERS)
@@ -148,8 +138,6 @@ def generate_fake_info() -> dict:
 
 # ============================================================
 # CONVERSATION STATE
-# Tracks multi-step form for each user.
-# States: None | "awaiting_username" | "awaiting_password" | "awaiting_2fa"
 # ============================================================
 
 user_state = {}
@@ -178,7 +166,6 @@ def clear_temp(user_id: int):
 # ============================================================
 
 def main_keyboard() -> ReplyKeyboardMarkup:
-    """Main reply keyboard shown to approved users."""
     kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.add(
         KeyboardButton("1️⃣ Submit Account ✅"),
@@ -188,7 +175,6 @@ def main_keyboard() -> ReplyKeyboardMarkup:
     return kb
 
 def approve_inline(user_id: int, username: str) -> InlineKeyboardMarkup:
-    """Inline keyboard sent to admin for approval."""
     kb = InlineKeyboardMarkup()
     kb.add(
         InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user_id}"),
@@ -237,12 +223,11 @@ def cmd_start(message):
                 f"Approve or deny this user:",
                 reply_markup=approve_inline(user_id, username)
             )
-            logger.info(f"Approval request sent to admin for user {user_id}.")
         except Exception as e:
             logger.error(f"Could not send approval request to admin: {e}")
 
 # ============================================================
-# ADMIN: APPROVAL CALLBACK
+# ADMIN APPROVAL CALLBACK
 # ============================================================
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("approve_") or call.data.startswith("deny_"))
@@ -257,7 +242,6 @@ def handle_approval(call):
 
     if action == "approve":
         approve_user(target_id)
-
         try:
             bot.send_message(
                 target_id,
@@ -351,8 +335,7 @@ def handle_messages(message):
             bot.send_message(
                 user_id,
                 "⚠️ <b>Failed to save data.</b>\n\n"
-                f"Error: <code>{e}</code>\n"
-                "Please try again or contact the admin.",
+                f"Error: <code>{e}</code>",
                 reply_markup=main_keyboard()
             )
 
