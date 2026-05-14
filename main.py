@@ -72,7 +72,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"👤 নাম: {user.full_name}\n"
             f"🆔 চ্যাট আইডি: `{chat_id}`\n"
             f"🔗 ইউজারনেম: @{user.username if user.username else 'নেই'}",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
     
     welcome_msg = (
