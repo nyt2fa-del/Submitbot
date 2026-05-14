@@ -1,4 +1,0 @@
-pyTelegramBotAPI==4.22.1
-gspread==6.1.0
-google-auth==2.37.0
-python-dotenv==1.0.1
