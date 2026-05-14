@@ -84,7 +84,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👤 **Admin Or Developer** - প্রশাসকের সাথে যোগাযোগ\n\n"
         f"⚠️ সতর্কতা: শুধু নিজের একাউন্টের জন্য ব্যবহার করুন।"
     )
-    await update.message.reply_text(welcome_msg, reply_markup=get_main_keyboard(), parse_mode="Markdown")
+    await update.message.reply_text(welcome_msg, reply_markup=get_main_keyboard(), parse_mode="HTML")
 
 # ========== Cookie Extract এর কনভার্সেশন ==========
 async def cookie_extract_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
