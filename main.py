@@ -203,7 +203,7 @@ async def generate_totp(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def admin_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👨‍💻 **ডেভেলপার ও অ্যাডমিন:**\n\n"
-        "এই বটটি তৈরি করেছেন **Your Name**\n"
+        "এই বটটি তৈরি করেছেন **@Nobody_ax**\n"
         "প্রয়োজনে যোগাযোগ করুন: [টেলিগ্রাম](https://t.me/your_username)\n\n"
         "⚠️ বটটি শুধুমাত্র শিক্ষামূলক উদ্দেশ্যে। নিজ দায়িত্বে ব্যবহার করুন।",
         parse_mode="Markdown", disable_web_page_preview=True,
